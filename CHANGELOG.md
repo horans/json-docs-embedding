@@ -2,6 +2,9 @@
 
 ## 2023-07-13
 
++ input text/embedding
++ input compare with doc items
++ utility: cosine similarity
 + allow config embedding paths
 + auto localstorage save/load
 + doc item extra: image

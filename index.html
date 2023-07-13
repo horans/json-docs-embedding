@@ -15,10 +15,13 @@
     <link rel="shortcut icon" href="https://horans.github.io/asset/favicon.ico">
     <style>
       .transition { transition: all ease-out 0.2s; }
+      .compact { font-size: 12px; line-height: 1; }
       .btn:not([class*="btn-"]):disabled { border-color: transparent; }
       ::placeholder { color: var(--bs-gray-400) !important; }
       textarea { resize: none; }
+      hr { margin: 0; }
       .form-control:invalid { border-color: rgba(var(--bs-danger-rgb),0.3); }
+      .form-control:read-only { opacity: 0.8; }
       main:not(.ready) { opacity: 0; pointer-events: none; }
       ul:focus-within li:not(:focus-within) { opacity: 0.6; }
       li:not(:hover):not(:focus-within) .suffix { display: none; }
@@ -30,7 +33,7 @@
       <h1>JSON Documents Embedding Tool</h1>
     </header>
     <main id="app" class="flex-grow-1 container">
-      <form class="d-flex flex-column gap-2" @submit.stop.prevent="submit">
+      <form class="d-flex flex-column gap-2" @submit.stop.prevent="check(download)">
         <section class="d-flex justify-content-between gap-2">
           <div class="d-flex gap-1">
             <div class="input-group w-auto">
@@ -41,8 +44,11 @@
             <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset" :disabled="list.length === 0 ? 'disabled' : undefined">
               <i class="fa-fw fa-solid fa-rotate-right"></i>
             </button>
-            <button class="btn opacity-75" :style="{ borderColor: setting ? 'var(--bs-border-color)' : '' }" type="button" title="Settings" @click="setting = !setting">
+            <button class="btn opacity-75" :style="{ borderColor: display.config ? 'var(--bs-border-color)' : '' }" type="button" title="Config" @click="display.config = !display.config">
               <i class="fa-fw fa-solid fa-gear"></i>
+            </button>
+            <button class="btn opacity-75" :style="{ borderColor: display.input ? 'var(--bs-border-color)' : '' }" type="button" title="Compare" @click="display.input = !display.input">
+              <i class="fa-fw fa-solid fa-pencil"></i>
             </button>
           </div>
           <div class="input-group w-auto">
@@ -58,39 +64,66 @@
             <a ref="anchor" href="#" download="exported.json"></a>
           </div>
         </section>
-        <section v-if="setting" class="opacity-75">
-          <div class="row gy-2">
-            <div class="col-12">
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-fw fa-solid fa-server" :title="config.endpoint ? 'Endpoint' : undefined"></i></span>
-                <input class="form-control" v-model="config.endpoint" placeholder="Embedding Endpoint" required>
+        <section class="bg-light rounded">
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item bg-transparent transition" v-if="display.config">
+              <div class="row gy-2">
+                <div class="col-12">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-server" :title="config.endpoint ? 'Endpoint' : undefined"></i></span>
+                    <input class="form-control" v-model="config.endpoint" placeholder="Embedding Endpoint" required>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-key" :title="config.apiKey ? 'API Key' : undefined"></i></span>
+                    <input class="form-control" v-model="config.apiKey" placeholder="Embedding API Key" required>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-3">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-right-to-bracket" :title="config.pathIn ? 'Request Path' : undefined"></i></span>
+                    <input class="form-control" v-model="config.pathIn" placeholder="Embedding Request Path" required>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-3">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-right-from-bracket" :title="config.pathOut ? 'Response Path' : undefined"></i></span>
+                    <input class="form-control" v-model="config.pathOut" placeholder="Embedding Response Path" required>
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="col-12 col-lg-6">
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-fw fa-solid fa-key" :title="config.apiKey ? 'API Key' : undefined"></i></span>
-                <input class="form-control" v-model="config.apiKey" placeholder="Embedding API Key" required>
+            </li>
+            <li class="list-group-item bg-transparent transition" v-if="display.input">
+              <div class="d-flex flex-column gap-2">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-comment-dots" :title="input.text ? 'Text to compare' : undefined"></i></span>
+                  <input class="form-control" v-model="input.text" placeholder="Text to compare" :readonly="input.lock ? 'readonly' : undefined">
+                  <button class="btn btn-outline-primary" type="button" title="Edit" v-if="input.lock" @click="edit(index)">
+                    <i class="fa-fw fa-solid fa-lock"></i>
+                  </button>
+                  <button class="btn btn-outline-warning" type="button" title="Save" v-else @click="save(index)" :disabled="!input.text || loading ? 'disabled' : undefined">
+                    <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
+                  </button>
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-database" :title="input.embedding ? 'Embedding to compare' : undefined"></i></span>
+                  <input class="form-control" v-model="input.embedding" placeholder="Embedding to compare" readonly>
+                  <button class="btn btn-outline-info" type="button" title="Check" :disabled="input.lock ? undefined : 'disabled'" @click="check(compare)">
+                    <i class="fa-fw fa-solid fa-list-check"></i>
+                  </button>
+                </div>
               </div>
-            </div>
-            <div class="col-12 col-lg-3">
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-fw fa-solid fa-right-to-bracket" :title="config.pathIn ? 'Request Path' : undefined"></i></span>
-                <input class="form-control" v-model="config.pathIn" placeholder="Embedding Request Path" required>
-              </div>
-            </div>
-            <div class="col-12 col-lg-3">
-              <div class="input-group">
-                <span class="input-group-text"><i class="fa-fw fa-solid fa-right-from-bracket" :title="config.pathOut ? 'Response Path' : undefined"></i></span>
-                <input class="form-control" v-model="config.pathOut" placeholder="Embedding Response Path" required>
-              </div>
-            </div>
-          </div>
+            </li>
+          </ul>
         </section>
-        <section class="d-flex flex-column gap-2">
+        <section>
+          <hr>
           <ul class="list-group list-group-flush">
             <li v-for="item, index in list" class="list-group-item d-flex flex-column rounded gap-1 transition">
-              <div class="input-group">
+              <div class="input-group position-relative">
                 <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
+                <span class="input-group-text text-muted font-monospace compact" v-if="input.similarities.length > 0">{{ input.similarities[index].similarity.toFixed(3) }}</span>
                 <input class="form-control main" v-model="item.title" placeholder="Title" required>
                 <button class="btn btn-outline-danger suffix" type="button" title="Delete" @click="del(index)">
                   <i class="fa-fw fa-solid fa-circle-minus"></i>
@@ -167,20 +200,30 @@
           const anchor = ref(null)
           const list = ref([])
           const loading = ref(false)
-          const setting = ref(false)
+          const display = reactive({
+            config: false,
+            input: false
+          })
           const config = reactive({
             endpoint: '',
             apiKey: '',
             pathIn: 'input',
             pathOut: 'data[0].embedding'
           })
+          const input = reactive({
+            text: '',
+            embedding: [],
+            lock: false,
+            similarities: []
+          })
           return {
             file,
             anchor,
             list,
             loading,
-            setting,
-            config
+            display,
+            config,
+            input
           }
         },
         watch: {
@@ -253,8 +296,8 @@
           },
           async save(index) {
             if (this.config.config !== '' && this.config.apiKey !== '' && this.config.pathIn !== '' && this.config.pathOut !== '') {
-              const current = this.list[index]
-              if (!current.lock) {
+              const current = index == null ? this.input : this.list[index]
+              if (!current.lock && current.text !== '') {
                 this.loading = true
                 await fetch(this.config.endpoint, {
                   method: 'POST',
@@ -270,19 +313,28 @@
                   this.loading = false
                 })
               }
-            } else this.setting = true
-          },
-          async submit () {
-            for (let count = 0; count < this.list.length; count++) {
-              if (!this.list[count].lock) await this.save(count)
-            }
-            this.download()
+            } else this.display.config = true
           },
           download () {
             const str = JSON.stringify(this.list, null, 2)
             this.$refs.anchor.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(str)
             this.$refs.anchor.click()
             setTimeout(() => { this.$refs.anchor.href = '#' })
+          },
+          async check (action) {
+            for (let count = 0; count < this.list.length; count++) {
+              await this.save(count)
+            }
+            if (action != null) action()
+          },
+          compare () {
+            this.input.similarities = []
+            this.list.forEach((item, index) => {
+              this.input.similarities.push({
+                index,
+                similarity: cosineSimilarity(this.input.embedding, this.list[index].embedding)
+              })
+            })
           }
         },
         mounted() {
@@ -299,9 +351,35 @@
           if (localData != null) this.load(localData)
 
           document.querySelector('main').classList.add('ready')
-          if (this.config.endpoint === '' || this.config.apiKey === '' || this.config.pathIn === '' || this.config.pathOut === '') this.setting = true
+          if (this.config.endpoint === '' || this.config.apiKey === '' || this.config.pathIn === '' || this.config.pathOut === '') this.display.config = true
         }
       }).mount('#app')
+
+      // similarity calculation
+      function dotProduct(a, b) {
+        let sum = 0;
+        for (let i = 0; i < a.length; i++) {
+          sum += a[i] * b[i];
+        }
+        return sum;
+      }
+
+      function magnitude(a) {
+        let sum = 0;
+        for (let i = 0; i < a.length; i++) {
+          sum += a[i] * a[i];
+        }
+        return Math.sqrt(sum);
+      }
+
+      function cosineSimilarity(a, b) {
+        if (a.length !== b.length) {
+          return -1;
+        }
+        let dot_product = dotProduct(a, b);
+        let magnitude_product = magnitude(a) * magnitude(b);
+        return dot_product / magnitude_product;
+      }
     </script>    
   </body>
 </html>
