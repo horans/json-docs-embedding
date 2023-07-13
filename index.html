@@ -94,32 +94,48 @@
               </div>
             </li>
             <li class="list-group-item bg-transparent transition" v-if="display.input">
-              <div class="d-flex flex-column gap-2">
-                <div class="input-group">
-                  <span class="input-group-text"><i class="fa-fw fa-solid fa-comment-dots" :title="input.text ? 'Text to compare' : undefined"></i></span>
-                  <input class="form-control" v-model="input.text" placeholder="Text to compare" :readonly="input.lock ? 'readonly' : undefined">
-                  <button class="btn btn-outline-primary" type="button" title="Edit" v-if="input.lock" @click="edit(index)">
-                    <i class="fa-fw fa-solid fa-lock"></i>
-                  </button>
-                  <button class="btn btn-outline-warning" type="button" title="Save" v-else @click="save(index)" :disabled="!input.text || loading ? 'disabled' : undefined">
-                    <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
-                  </button>
+              <div class="row gy-2">
+                <div class="col-12">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-comment-dots" :title="input.text ? 'Text to Compare' : undefined"></i></span>
+                    <input class="form-control" v-model="input.text" placeholder="Text to Compare" :readonly="input.lock ? 'readonly' : undefined">
+                    <button class="btn btn-outline-primary" type="button" title="Edit" v-if="input.lock" @click="edit()">
+                      <i class="fa-fw fa-solid fa-lock"></i>
+                    </button>
+                    <button class="btn btn-outline-warning" type="button" title="Save" v-else @click="save()" :disabled="!input.text || loading ? 'disabled' : undefined">
+                      <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
+                    </button>
+                  </div>
                 </div>
-                <div class="input-group">
-                  <span class="input-group-text"><i class="fa-fw fa-solid fa-database" :title="input.embedding ? 'Embedding to compare' : undefined"></i></span>
-                  <input class="form-control" v-model="input.embedding" placeholder="Embedding to compare" readonly>
-                  <button class="btn btn-outline-info" type="button" title="Check" :disabled="input.lock ? undefined : 'disabled'" @click="check(compare)">
-                    <i class="fa-fw fa-solid fa-list-check"></i>
-                  </button>
+                <div class="col-12 col-lg-9">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-database" :title="input.embedding ? 'Embedding to Compare' : undefined"></i></span>
+                    <input class="form-control" v-model="input.embedding" placeholder="Embedding to Compare" readonly>
+                    <button class="btn btn-info" type="button" title="Check" :disabled="input.lock ? undefined : 'disabled'" @click="check(compare)">
+                      <i class="fa-fw fa-solid fa-list-check"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="col-12 col-lg-3">
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="fa-fw fa-solid fa-temperature-half" :title="config.threshold ? 'Similarity Threshold' : undefined"></i></span>
+                    <span class="input-group-text form-control bg-white">
+                      <input class="form-range" type="range" v-model.number="config.threshold" min="0.5" max="0.9" step="0.05" placeholder="Similarity Threshold">
+                    </span>
+                    <span class="input-group-text compact font-monospace px-2">{{ config.threshold.toFixed(2) }}</span>
+                  </div>
                 </div>
               </div>
             </li>
           </ul>
         </section>
         <section>
-          <hr v-if="display.config || display.input" class="m-0">
           <ul class="list-group list-group-flush">
-            <li v-for="item, index in list" class="list-group-item d-flex flex-column rounded gap-1 transition">
+            <li
+              v-for="item, index in list"
+              class="list-group-item d-flex flex-column rounded gap-1 transition"
+              :class="{ 'bg-info bg-opacity-25': input.similarities.length > 0 && input.similarities[index].similarity >= config.threshold }"
+            >
               <div class="input-group position-relative">
                 <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
                 <span class="input-group-text text-muted font-monospace compact" v-if="input.similarities.length > 0">{{ input.similarities[index].similarity.toFixed(3) }}</span>
@@ -207,7 +223,8 @@
             endpoint: '',
             apiKey: '',
             pathIn: 'input',
-            pathOut: 'data[0].embedding'
+            pathOut: 'data[0].embedding',
+            threshold: 0.7
           })
           const input = reactive({
             text: '',
@@ -291,7 +308,7 @@
             reader.readAsText(file)
           },
           edit(index) {
-            const current = this.list[index]
+            const current = index == null ? this.input : this.list[index]
             if (current.lock) {
               current.lock = false
               current.embedding = []

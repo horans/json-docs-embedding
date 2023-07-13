@@ -4,6 +4,7 @@
 
 + input text/embedding
 + input compare with doc items
++ config: similarity threshold
 + utility: cosine similarity
 + allow config embedding paths
 + auto localstorage save/load
