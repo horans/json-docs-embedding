@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>JSON Documents Embedding Tool</title>
+    <link
+    href="https://cdn.staticfile.org/bootstrap/5.3.0/css/bootstrap.min.css"
+    rel="stylesheet"
+    />
+    <link
+    href="https://cdn.staticfile.org/font-awesome/6.4.0/css/all.min.css"
+    rel="stylesheet"
+    />
+    <link rel="shortcut icon" href="https://horans.github.io/asset/favicon.ico">
+    <style>
+      .transition { transition: all ease-out 0.2s; }
+      .btn:not([class*="btn-"]):disabled { border-color: transparent; }
+      ::placeholder { color: var(--bs-gray-400) !important; }
+      textarea { resize: none; }
+      .form-control:invalid { border-color: rgba(var(--bs-danger-rgb),0.3); }
+      main:not(.ready) { opacity: 0; pointer-events: none; }
+      ul:focus-within li:not(:focus-within) { opacity: 0.6; }
+      li:not(:hover):not(:focus-within) .suffix { display: none; }
+      li:not(:hover):not(:focus-within) .main { border-top-right-radius: var(--bs-border-radius) !important; border-bottom-right-radius: var(--bs-border-radius) !important; }
+    </style>
+  </head>
+  <body class="d-flex flex-column gap-3 py-3 vh-100">
+    <header class="text-center">
+      <h1>JSON Documents Embedding Tool</h1>
+    </header>
+    <main id="app" class="flex-grow-1 container">
+      <form class="d-flex flex-column gap-2" @submit.stop.prevent="submit">
+        <section class="d-flex justify-content-between gap-2">
+          <div class="d-flex gap-1">
+            <div class="input-group w-auto">
+              <button class="btn btn-primary" type="button" @click="add">
+                <i class="fa-fw fa-solid fa-circle-plus"></i> Add
+              </button>
+            </div>
+            <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset" :disabled="list.length === 0 ? 'disabled' : undefined">
+              <i class="fa-fw fa-solid fa-rotate-right"></i>
+            </button>
+            <button class="btn opacity-75" :style="{ borderColor: setting ? 'var(--bs-border-color)' : '' }" type="button" title="Settings" @click="setting = !setting">
+              <i class="fa-fw fa-solid fa-gear"></i>
+            </button>
+          </div>
+          <div class="input-group w-auto">
+            <button class="btn btn-outline-secondary" type="button" @click="file.click()">
+              <i class="fa-fw fa-solid fa-file-import"></i> Import
+            </button>
+            <button class="btn btn-primary" type="submit" :disabled="list.length === 0 || loading ? 'disabled' : undefined">
+              <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-file-export'"></i> Export ({{ list.length }})
+            </button>
+          </div>
+          <div class="d-none">
+            <input ref="file" type="file" accept="application/json" @change="upload">
+            <a ref="anchor" href="#" download="exported.json"></a>
+          </div>
+        </section>
+        <section v-if="setting" class="opacity-75">
+          <div class="row gy-2">
+            <div class="col-12">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-server" :title="config.endpoint ? 'Endpoint' : undefined"></i></span>
+                <input class="form-control" v-model="config.endpoint" placeholder="Embedding Endpoint" required>
+              </div>
+            </div>
+            <div class="col-12 col-lg-6">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-key" :title="config.apiKey ? 'API Key' : undefined"></i></span>
+                <input class="form-control" v-model="config.apiKey" placeholder="Embedding API Key" required>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-right-to-bracket" :title="config.pathIn ? 'Request Path' : undefined"></i></span>
+                <input class="form-control" v-model="config.pathIn" placeholder="Embedding Request Path" required>
+              </div>
+            </div>
+            <div class="col-12 col-lg-3">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-right-from-bracket" :title="config.pathOut ? 'Response Path' : undefined"></i></span>
+                <input class="form-control" v-model="config.pathOut" placeholder="Embedding Response Path" required>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="d-flex flex-column gap-2">
+          <ul class="list-group list-group-flush">
+            <li v-for="item, index in list" class="list-group-item d-flex flex-column rounded gap-1 transition">
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
+                <input class="form-control main" v-model="item.title" placeholder="Title" required>
+                <button class="btn btn-outline-danger suffix" type="button" title="Delete" @click="del(index)">
+                  <i class="fa-fw fa-solid fa-circle-minus"></i>
+                </button>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-comment-dots" :title="item.text ? 'Text' : undefined"></i></span>
+                <textarea class="form-control main" v-model="item.text" placeholder="Text" required :readonly="item.lock ? 'readonly' : undefined"></textarea>
+                <button class="btn btn-outline-primary suffix" type="button" title="Edit" v-if="item.lock" @click="edit(index)">
+                  <i class="fa-fw fa-solid fa-lock"></i>
+                </button>
+                <button class="btn btn-outline-warning suffix" type="button" title="Save" v-else @click="save(index)" :disabled="!item.text || loading ? 'disabled' : undefined">
+                  <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
+                </button>
+              </div>
+              <div class="input-group">
+                <span class="input-group-text"><i class="fa-fw fa-solid fa-database" :title="item.embedding ? 'Embedding' : undefined"></i></span>
+                <input class="form-control main" v-model="item.embedding" placeholder="Embedding" readonly required>
+                <button class="btn btn-outline-info suffix" type="button" title="Extra" @click="item.extra = !item.extra">
+                  <i class="fa-fw fa-solid" :class="item.extra ? 'fa-angles-up' : 'fa-angles-down'"></i>
+                </button>
+              </div>
+              <template v-if="item.extra">
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-link" :title="item.link ? 'Link' : undefined"></i></span>
+                  <input class="form-control" v-model="item.link" placeholder="Link">
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-image" :title="item.image ? 'Image' : undefined"></i></span>
+                  <input class="form-control" v-model="item.image" placeholder="Image">
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-video" :title="item.video ? 'Video' : undefined"></i></span>
+                  <input class="form-control" v-model="item.video" placeholder="Video">
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-v" :title="item.version ? 'Version' : undefined"></i></span>
+                  <input class="form-control" v-model="item.version" placeholder="Version">
+                </div>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-code" :title="item.function ? 'Function/ID' : undefined"></i></span>
+                  <input class="form-control" v-model="item.function" placeholder="Function/ID">
+                </div>
+              </template>
+            </li>
+          </ul>
+        </section>
+      </form>
+    </main>
+    <footer class="small text-center text-muted">
+      <span>Powered by <a href="https://github.com/horans/documents-embedding" target="_blank">horans@gmail.com</a></span>
+    </footer>
+    <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.staticfile.org/lodash.js/4.17.21/lodash.min.js"></script>
+    <script>
+    const defaultItem = {
+        title: '',
+        text: '',
+        embedding: [],
+        lock: false,
+        extra: false,
+        link: '',
+        image: '',
+        video: '',
+        version: '',
+        function: ''
+      }
+    const localPrefix = 'docs-emb'
+
+    const { createApp, ref, reactive, watch } = Vue
+      createApp({
+        setup() {
+          const file = ref(null)
+          const anchor = ref(null)
+          const list = ref([])
+          const loading = ref(false)
+          const setting = ref(false)
+          const config = reactive({
+            endpoint: '',
+            apiKey: '',
+            pathIn: 'input',
+            pathOut: 'data[0].embedding'
+          })
+          return {
+            file,
+            anchor,
+            list,
+            loading,
+            setting,
+            config
+          }
+        },
+        watch: {
+          config: {
+            handler(nv) {
+              try {
+                localStorage.setItem(localPrefix + '-config', JSON.stringify(nv))
+              } catch {}
+            },
+            deep: true
+          },
+          list: {
+            handler(nv) {
+              try {
+                localStorage.setItem(localPrefix + '-data', JSON.stringify(nv))
+              } catch {}
+            },
+            deep: true
+          }
+        },
+        methods: {
+          add() {
+            this.list.push({ ...defaultItem })
+          },
+          del(index) {
+            this.list.splice(index, 1)
+          },
+          reset() {
+            this.list = []
+          },
+          load(text) {
+            try {
+              data = JSON.parse(text)
+              if (Array.isArray(data)) {
+                data.forEach(item => {
+                  if (item.title != null && item.title !== '' && item.text != null && item.text !== '') {
+                    const current = { ...defaultItem }
+                    current.title = item.title
+                    current.text = item.text
+                    current.embedding = item.embedding
+                    current.link = item.link
+                    current.image = item.image
+                    current.video = item.video
+                    current.version = item.version
+                    current.function = item.function
+                    current.lock = item.lock == null ? (current.embedding != null && current.embedding !== []) : item.lock
+                    current.extra = item.extra == null ? (current.link || current.image || current.video || current.version || current.function) : item.extra
+                    this.list.push(current)
+                  }
+                })
+              }
+            } catch {}
+          },
+          upload(event) {
+            const file = event.target.files[0]
+            const reader = new FileReader()
+            reader.addEventListener('load', e => {
+              this.$refs.file.value = null
+              this.reset()
+              this.load(e.target.result)
+            })
+            reader.readAsText(file)
+          },
+          edit(index) {
+            const current = this.list[index]
+            if (current.lock) {
+              current.lock = false
+              current.embedding = []
+            }
+          },
+          async save(index) {
+            if (this.config.config !== '' && this.config.apiKey !== '' && this.config.pathIn !== '' && this.config.pathOut !== '') {
+              const current = this.list[index]
+              if (!current.lock) {
+                this.loading = true
+                await fetch(this.config.endpoint, {
+                  method: 'POST',
+                  headers: { 
+                    'Content-Type': 'application/json',
+                    'api-key': this.config.apiKey
+                  },
+                  body: JSON.stringify({ [this.config.pathIn]: current.text })
+                }).then(response => response.json())
+                .then(result => {
+                  current.embedding = _.get(result, this.config.pathOut)
+                  current.lock = true
+                  this.loading = false
+                })
+              }
+            } else this.setting = true
+          },
+          async submit () {
+            for (let count = 0; count < this.list.length; count++) {
+              if (!this.list[count].lock) await this.save(count)
+            }
+            this.download()
+          },
+          download () {
+            const str = JSON.stringify(this.list, null, 2)
+            this.$refs.anchor.href = 'data:application/json;charset=utf-8,'+ encodeURIComponent(str)
+            this.$refs.anchor.click()
+            setTimeout(() => { this.$refs.anchor.href = '#' })
+          }
+        },
+        mounted() {
+          try {
+            const localConfig = JSON.parse(localStorage.getItem(localPrefix + '-config'))
+            if (localConfig != null) {
+              this.config.endpoint = localConfig.endpoint
+              this.config.apiKey = localConfig.apiKey
+              this.config.pathIn = localConfig.pathIn
+              this.config.pathOut = localConfig.pathOut
+            }
+          } catch {}
+          const localData = localStorage.getItem(localPrefix + '-data')
+          if (localData != null) this.load(localData)
+
+          document.querySelector('main').classList.add('ready')
+          if (this.config.endpoint === '' || this.config.apiKey === '' || this.config.pathIn === '' || this.config.pathOut === '') this.setting = true
+        }
+      }).mount('#app')
+    </script>    
+  </body>
+</html>
