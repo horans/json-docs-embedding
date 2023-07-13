@@ -19,7 +19,6 @@
       .btn:not([class*="btn-"]):disabled { border-color: transparent; }
       ::placeholder { color: var(--bs-gray-400) !important; }
       textarea { resize: none; }
-      hr { margin: 0; }
       .form-control:invalid { border-color: rgba(var(--bs-danger-rgb),0.3); }
       .form-control:read-only { opacity: 0.8; }
       main:not(.ready) { opacity: 0; pointer-events: none; }
@@ -118,7 +117,7 @@
           </ul>
         </section>
         <section>
-          <hr>
+          <hr v-if="display.config || display.input" class="m-0">
           <ul class="list-group list-group-flush">
             <li v-for="item, index in list" class="list-group-item d-flex flex-column rounded gap-1 transition">
               <div class="input-group position-relative">
