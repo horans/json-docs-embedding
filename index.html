@@ -40,7 +40,7 @@
                 <i class="fa-fw fa-solid fa-circle-plus"></i> Add
               </button>
             </div>
-            <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset" :disabled="list.length === 0 ? 'disabled' : undefined">
+            <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset();reset(true)" :disabled="list.length === 0 ? 'disabled' : undefined">
               <i class="fa-fw fa-solid fa-rotate-right"></i>
             </button>
             <button class="btn opacity-75" :style="{ borderColor: display.config ? 'var(--bs-border-color)' : '' }" type="button" title="Config" @click="display.config = !display.config">
@@ -111,7 +111,7 @@
                   <div class="input-group">
                     <span class="input-group-text"><i class="fa-fw fa-solid fa-database" :title="input.embedding ? 'Embedding to Compare' : undefined"></i></span>
                     <input class="form-control" v-model="input.embedding" placeholder="Embedding to Compare" readonly>
-                    <button class="btn btn-info" type="button" title="Check" :disabled="input.lock ? undefined : 'disabled'" @click="check(compare)">
+                    <button class="btn btn-info" type="button" title="Check" :disabled="input.lock && input.similarities.length === 0 && list.length > 0 ? undefined : 'disabled'" @click="check(compare)">
                       <i class="fa-fw fa-solid fa-list-check"></i>
                     </button>
                   </div>
@@ -122,7 +122,7 @@
                     <span class="input-group-text form-control bg-white">
                       <input class="form-range" type="range" v-model.number="config.threshold" min="0.5" max="0.9" step="0.05" placeholder="Similarity Threshold">
                     </span>
-                    <span class="input-group-text compact font-monospace px-2">{{ config.threshold.toFixed(2) }}</span>
+                    <span class="input-group-text compact text-muted font-monospace px-1">{{ config.threshold.toFixed(3) }}</span>
                   </div>
                 </div>
               </div>
@@ -138,8 +138,8 @@
             >
               <div class="input-group position-relative">
                 <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
-                <span class="input-group-text text-muted font-monospace compact" v-if="input.similarities.length > 0">{{ input.similarities[index].similarity.toFixed(3) }}</span>
-                <input class="form-control main" v-model="item.title" placeholder="Title" required>
+                <input class="form-control" :class="{ 'main': input.similarities.length === 0 }" v-model="item.title" placeholder="Title" required>
+                <span class="input-group-text main text-muted font-monospace compact px-1" v-if="input.similarities.length > 0">{{ input.similarities[index].similarity.toFixed(3) }}</span>
                 <button class="btn btn-outline-danger suffix" type="button" title="Delete" @click="del(index)">
                   <i class="fa-fw fa-solid fa-circle-minus"></i>
                 </button>
@@ -313,6 +313,7 @@
               current.lock = false
               current.embedding = []
             }
+            if (index == null) this.reset(true)
           },
           async save(index) {
             if (this.config.config !== '' && this.config.apiKey !== '' && this.config.pathIn !== '' && this.config.pathOut !== '') {
