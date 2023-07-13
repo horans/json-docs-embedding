@@ -245,18 +245,22 @@
         },
         methods: {
           add() {
+            this.reset(true)
             this.list.push({ ...defaultItem })
           },
           del(index) {
+            this.reset(true)
             this.list.splice(index, 1)
           },
-          reset() {
-            this.list = []
+          reset(similarity) {
+            if (similarity) this.input.similarities = []
+            else this.list = []
           },
           load(text) {
             try {
               data = JSON.parse(text)
               if (Array.isArray(data)) {
+                this.reset(true)
                 data.forEach(item => {
                   if (item.title != null && item.title !== '' && item.text != null && item.text !== '') {
                     const current = { ...defaultItem }
