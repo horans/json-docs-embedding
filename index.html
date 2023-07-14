@@ -102,7 +102,7 @@
                     <button class="btn btn-outline-primary" type="button" title="Edit" v-if="input.lock" @click="edit()">
                       <i class="fa-fw fa-solid fa-lock"></i>
                     </button>
-                    <button class="btn btn-outline-warning" type="button" title="Save" v-else @click="save()" :disabled="!input.text || loading ? 'disabled' : undefined">
+                    <button class="btn btn-outline-warning" type="button" title="Pair" v-else @click="pair()" :disabled="!input.text || loading ? 'disabled' : undefined">
                       <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
                     </button>
                   </div>
@@ -138,7 +138,7 @@
             >
               <div class="input-group position-relative">
                 <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
-                <input class="form-control" :class="{ 'main': input.similarities.length === 0 }" v-model="item.title" placeholder="Title" required>
+                <input class="form-control" :class="{ 'main': input.similarities.length === 0 }" v-model="item.title" placeholder="Title">
                 <span class="input-group-text main text-muted font-monospace compact px-1" v-if="input.similarities.length > 0">{{ input.similarities[index].toFixed(3) }}</span>
                 <button class="btn btn-outline-danger suffix" type="button" title="Delete" @click="del(index)">
                   <i class="fa-fw fa-solid fa-circle-minus"></i>
@@ -150,7 +150,7 @@
                 <button class="btn btn-outline-primary suffix" type="button" title="Edit" v-if="item.lock" @click="edit(index)">
                   <i class="fa-fw fa-solid fa-lock"></i>
                 </button>
-                <button class="btn btn-outline-warning suffix" type="button" title="Save" v-else @click="save(index)" :disabled="!item.text || loading ? 'disabled' : undefined">
+                <button class="btn btn-outline-warning suffix" type="button" title="Pair" v-else @click="pair(index)" :disabled="!item.text || loading ? 'disabled' : undefined">
                   <i class="fa-fw fa-solid" :class="loading ? 'fa-spinner fa-spin' : 'fa-lock-open'"></i>
                 </button>
               </div>
@@ -179,8 +179,8 @@
                   <input class="form-control" v-model="item.version" placeholder="Version">
                 </div>
                 <div class="input-group">
-                  <span class="input-group-text"><i class="fa-fw fa-solid fa-code" :title="item.function ? 'Function/ID' : undefined"></i></span>
-                  <input class="form-control" v-model="item.function" placeholder="Function/ID">
+                  <span class="input-group-text"><i class="fa-fw fa-solid fa-code" :title="item.function ? 'Function' : undefined"></i></span>
+                  <input class="form-control" v-model="item.function" placeholder="Function">
                 </div>
               </template>
             </li>
@@ -279,7 +279,7 @@
               data = JSON.parse(text)
               if (Array.isArray(data)) {
                 data.forEach(item => {
-                  if (item.title != null && item.title !== '' && item.text != null && item.text !== '') {
+                  if (item.text != null && item.text !== '') {
                     const current = { ...defaultItem }
                     current.title = item.title
                     current.text = item.text
@@ -315,7 +315,7 @@
             }
             if (index == null) this.reset('similarity')
           },
-          async save(index) {
+          async pair(index) {
             if (this.config.config !== '' && this.config.apiKey !== '' && this.config.pathIn !== '' && this.config.pathOut !== '') {
               const current = index == null ? this.input : this.list[index]
               if (!current.lock && current.text !== '') {
@@ -344,7 +344,7 @@
           },
           async check (action) {
             for (let count = 0; count < this.list.length; count++) {
-              await this.save(count)
+              await this.pair(count)
             }
             if (action != null) action()
           },
