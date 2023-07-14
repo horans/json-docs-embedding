@@ -31,8 +31,8 @@
     <header class="text-center">
       <h1>JSON Documents Embedding Tool</h1>
     </header>
-    <main id="app" class="flex-grow-1 container">
-      <form class="d-flex flex-column gap-2" @submit.stop.prevent="check(download)">
+    <main id="app" class="flex-grow-1 container overflow-hidden">
+      <form class="d-flex flex-column gap-2 h-100" @submit.stop.prevent="check(download)">
         <section class="d-flex justify-content-between gap-2">
           <div class="d-flex gap-1">
             <div class="input-group w-auto">
@@ -40,14 +40,14 @@
                 <i class="fa-fw fa-solid fa-circle-plus"></i> Add
               </button>
             </div>
-            <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset();reset(true)" :disabled="list.length === 0 ? 'disabled' : undefined">
+            <button class="btn transition" :class="list.length === 0 ? 'opacity-50' : 'opacity-75'" type="button" title="Reset" @click="reset" :disabled="list.length === 0 ? 'disabled' : undefined">
               <i class="fa-fw fa-solid fa-rotate-right"></i>
             </button>
             <button class="btn opacity-75" :style="{ borderColor: display.config ? 'var(--bs-border-color)' : '' }" type="button" title="Config" @click="display.config = !display.config">
               <i class="fa-fw fa-solid fa-gear"></i>
             </button>
             <button class="btn opacity-75" :style="{ borderColor: display.input ? 'var(--bs-border-color)' : '' }" type="button" title="Compare" @click="display.input = !display.input">
-              <i class="fa-fw fa-solid fa-pencil"></i>
+              <i class="fa-fw fa-solid fa-circle-half-stroke"></i>
             </button>
           </div>
           <div class="input-group w-auto">
@@ -129,17 +129,17 @@
             </li>
           </ul>
         </section>
-        <section>
+        <section class="flex-grow-1 overflow-y-auto">
           <ul class="list-group list-group-flush">
             <li
               v-for="item, index in list"
               class="list-group-item d-flex flex-column rounded gap-1 transition"
-              :class="{ 'bg-info bg-opacity-25': input.similarities.length > 0 && input.similarities[index].similarity >= config.threshold }"
+              :class="{ 'bg-info bg-opacity-25': input.similarities.length > 0 && input.similarities[index] >= config.threshold }"
             >
               <div class="input-group position-relative">
                 <span class="input-group-text"><i class="fa-fw fa-solid fa-heading" :title="item.title ? 'Title' : undefined"></i></span>
                 <input class="form-control" :class="{ 'main': input.similarities.length === 0 }" v-model="item.title" placeholder="Title" required>
-                <span class="input-group-text main text-muted font-monospace compact px-1" v-if="input.similarities.length > 0">{{ input.similarities[index].similarity.toFixed(3) }}</span>
+                <span class="input-group-text main text-muted font-monospace compact px-1" v-if="input.similarities.length > 0">{{ input.similarities[index].toFixed(3) }}</span>
                 <button class="btn btn-outline-danger suffix" type="button" title="Delete" @click="del(index)">
                   <i class="fa-fw fa-solid fa-circle-minus"></i>
                 </button>
@@ -192,7 +192,6 @@
       <span>Powered by <a href="https://github.com/horans/documents-embedding" target="_blank">horans@gmail.com</a></span>
     </footer>
     <script src="https://cdn.staticfile.org/vue/3.3.4/vue.global.prod.min.js"></script>
-    <script src="https://cdn.staticfile.org/lodash.js/4.17.21/lodash.min.js"></script>
     <script>
     const defaultItem = {
         title: '',
@@ -258,26 +257,27 @@
               } catch {}
             },
             deep: true
+          },
+          'list.length'(nv, ov) {
+            if (nv !== ov) this.reset('similarity')
           }
         },
         methods: {
           add() {
-            this.reset(true)
             this.list.push({ ...defaultItem })
           },
           del(index) {
-            this.reset(true)
             this.list.splice(index, 1)
           },
-          reset(similarity) {
-            if (similarity) this.input.similarities = []
-            else this.list = []
+          reset(type) {
+            if (type !== 'list' && type !== 'similarity') type = undefined
+            if (type == null || type === 'list') this.list = []
+            if (type == null || type === 'similarity') this.input.similarities = []
           },
           load(text) {
             try {
               data = JSON.parse(text)
               if (Array.isArray(data)) {
-                this.reset(true)
                 data.forEach(item => {
                   if (item.title != null && item.title !== '' && item.text != null && item.text !== '') {
                     const current = { ...defaultItem }
@@ -302,7 +302,7 @@
             const reader = new FileReader()
             reader.addEventListener('load', e => {
               this.$refs.file.value = null
-              this.reset()
+              this.reset('list')
               this.load(e.target.result)
             })
             reader.readAsText(file)
@@ -313,7 +313,7 @@
               current.lock = false
               current.embedding = []
             }
-            if (index == null) this.reset(true)
+            if (index == null) this.reset('similarity')
           },
           async save(index) {
             if (this.config.config !== '' && this.config.apiKey !== '' && this.config.pathIn !== '' && this.config.pathOut !== '') {
@@ -329,7 +329,7 @@
                   body: JSON.stringify({ [this.config.pathIn]: current.text })
                 }).then(response => response.json())
                 .then(result => {
-                  current.embedding = _.get(result, this.config.pathOut)
+                  current.embedding = get(result, this.config.pathOut)
                   current.lock = true
                   this.loading = false
                 })
@@ -351,10 +351,7 @@
           compare () {
             this.input.similarities = []
             this.list.forEach((item, index) => {
-              this.input.similarities.push({
-                index,
-                similarity: cosineSimilarity(this.input.embedding, this.list[index].embedding)
-              })
+              this.input.similarities.push(cosineSimilarity(this.input.embedding, this.list[index].embedding))
             })
           }
         },
@@ -375,8 +372,21 @@
           if (this.config.endpoint === '' || this.config.apiKey === '' || this.config.pathIn === '' || this.config.pathOut === '') this.display.config = true
         }
       }).mount('#app')
-
-      // similarity calculation
+    </script>
+    <script>
+      // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore
+      const get = (obj, path, defaultValue = undefined) => {
+        const travel = regexp =>
+          String.prototype.split
+            .call(path, regexp)
+            .filter(Boolean)
+            .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
+        const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
+        return result === undefined || result === obj ? defaultValue : result;
+      };      
+    </script>
+    <script>
+      // similarity calculation by chatgpt
       function dotProduct(a, b) {
         let sum = 0;
         for (let i = 0; i < a.length; i++) {
@@ -401,6 +411,6 @@
         let magnitude_product = magnitude(a) * magnitude(b);
         return dot_product / magnitude_product;
       }
-    </script>    
+    </script>
   </body>
 </html>
