@@ -1,6 +1,6 @@
-# JSON Documents Embedding Tool
+# JSON 文档嵌入工具
 
-An online tool to merge and compare text document items with their vector embeddings in JSON.  
+一个用于将文档条目的文本及其矢量嵌入信息合并在 JSON 文件中的在线工具。
 [更新日志](CHANGELOG.md) | [英文说明](README.md)
 
 ## 介绍
@@ -74,8 +74,8 @@ JSON 示例：
 
 ### 导出
 
-通过点击“导出”（Export）按钮，您可以将当前的文档列表导出为 JSON 文件。
-如果有任何条目没有“文本”（Text），这些条目将被跳过。
+通过点击“导出”（Export）按钮，您可以将当前的文档列表导出为 JSON 文件。  
+如果有任何条目没有“文本”（Text），这些条目将被跳过。  
 如果有任何条目带有“文本”（Text）但没有“嵌入”（Embedding），这些条目将自动配对。
 
 ### 重置
@@ -91,9 +91,9 @@ JSON 示例：
 - 请求路径（Request Path）：默认为`input`
 - 响应路径（Response Path）：默认为`data[0].embedding`
 
-详细参考：<https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference#embeddings>  
 通过点击“配置”（Config）按钮，您可以调整这些参数。  
-如果您没有使用 Azure/OpenAI 的嵌入 API，您可能需要调整代码中的`fetch()`参数。
+如果您没有使用 Azure/OpenAI 的嵌入 API，您可能需要调整代码中的`fetch()`参数。  
+详细参考：<https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference#embeddings>  
 
 ### 比较
 

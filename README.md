@@ -7,18 +7,18 @@ An online tool to merge and compare text document items with their vector embedd
 
 Embedding and prompt engineering is a low-cost way of adding temporal new knowledge to LLMs like ChatGPT during a chat session.
 
-Consider we are building a FAQ system for a new product that ChatGPT is not familiar with.  
-We already prepared 300 pages document, but there might be limitations/it costs too much to put them all in the prompt.  
-What if we can pick only 3 pages that related most to the user's question, then sent them to ChatGPT to understand?  
+Consider we are building a FAQ system for a new product that ChatGPT is not familiar with.
+We already prepared 300 pages document, but there might be limitations/it costs too much to put them all in the prompt.
+What if we can pick only 3 pages that related most to the user's question, then sent them to ChatGPT to understand?
 
-Here is where "embedding" steps in.  
-With embedding, a certain text string is "paired" with an array of numbers.  
-Then by calculating "Cosine Similarity", we can find a similarity score(-1 to 1) of any two arrays.  
-The higher score it gets, indicates the meaning of the two texts are more likely "close" to each other.  
+Here is where "embedding" steps in.
+With embedding, a certain text string is "paired" with an array of numbers.
+Then by calculating "Cosine Similarity", we can find a similarity score(-1 to 1) of any two arrays.
+The higher score it gets, indicates the meaning of the two texts are more likely "close" to each other.
 In this way, we can find 3 pages out of 300 that related most to the user's input easily.
 
-This tool is helping people who are preparing their documents to get embeddings with an Azure/OpenAI API.  
-And export as a static JSON file then can be used repeatedly during every chat session.  
+This tool is helping people who are preparing their documents to get embeddings with an Azure/OpenAI API.
+And export as a static JSON file then can be used repeatedly during every chat session.
 It can also compare the user's input with documents, and calculate the similarity scores.
 
 Sample JSON:
@@ -50,18 +50,18 @@ You can remove the current document item from the list by clicking the `Delete` 
 
 ### Edit
 
-You can input all the fields of a document item other than "Embedding".  
-After you finished editing your "Text" field, click the `Pair` button on the right.  
-It will request the Azure/OpenAI embedding API and responses with the result.  
-Then it will put a lock to your "Text" field which means that now the text and embedding are "paired".  
+You can input all the fields of a document item other than "Embedding".
+After you finished editing your "Text" field, click the `Pair` button on the right.
+It will request the Azure/OpenAI embedding API and responses with the result.
+Then it will put a lock to your "Text" field which means that now the text and embedding are "paired".
 You will have to unlock it before you can `Edit` your "Text" again.
 
 You don't have to pair item by item, an automatic pair for all items will be performed when you `Export`.
 
 ### Import
 
-You can import a document list from a JSON file by clicking the `Import` button.  
-The JSON file must follow the format of "Sample JSON" in the introduction section.  
+You can import a document list from a JSON file by clicking the `Import` button.
+The JSON file must follow the format of "Sample JSON" in the introduction section.
 A minimum JSON can be:
 
 ```json
@@ -73,8 +73,8 @@ A minimum JSON can be:
 
 ### Export
 
-You can export document items in the current list to a JSON file by clicking the `Export` button.  
-If there are any items without "Text", those items will be skipped.  
+You can export document items in the current list to a JSON file by clicking the `Export` button.
+If there are any items without "Text", those items will be skipped.
 If there are any items with "Text" but without "Embedding", those items will be paired automatically.
 
 ### Reset
@@ -90,16 +90,16 @@ You will need the following things before you can start embedding:
 - Request Path: `input` by default
 - Response Path: `data[0].embedding` by default
 
-Reference: <https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference#embeddings>  
-You can adjust these parameters by clicking the `Config` button.  
+You can adjust these parameters by clicking the `Config` button.
 If you are not using Azure/OpenAI embedding API, you may need to adjust the parameters of `fetch()` in codes.
+Reference: <https://learn.microsoft.com/en-us/azure/cognitive-services/openai/reference#embeddings>  
 
 ### Compare
 
-By clicking the `Compare` button, you can temporally input some text and compare it to the text in the list.  
-Once you clicked the `Check` button, a `Cosine Similarity` between input embedding and list item embeddings will be calculated.  
-The similarity score will be shown on each item after the calculation.  
-You can adjust a threshold to highlight items above it. (0.7 by default)  
+By clicking the `Compare` button, you can temporally input some text and compare it to the text in the list.
+Once you clicked the `Check` button, a `Cosine Similarity` between input embedding and list item embeddings will be calculated.
+The similarity score will be shown on each item after the calculation.
+You can adjust a threshold to highlight items above it. (0.7 by default)
 This feature will help you to test out if your preset documents can be "picked" by the user's input.
 
 Similarity scores will be cleared during the following scenarios:
@@ -109,7 +109,7 @@ Similarity scores will be cleared during the following scenarios:
 
 ### Remember
 
-Document list and API configs will be stored in `localStorage` of browser.  
+Document list and API configs will be stored in `localStorage` of browser.
 You can come back any time you want to continue your work.
 
 ## Dependencies
